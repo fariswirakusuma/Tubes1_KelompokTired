@@ -78,6 +78,11 @@ public class RobotPlayer {
 
         if (refuelPaint(rc)) return;
 
+        MapInfo here = rc.senseMapInfo(rc.getLocation());
+        if (!here.getPaint().isAlly() && rc.canAttack(rc.getLocation())) {
+            rc.attack(rc.getLocation());
+        }
+
         MapInfo[] nearby = rc.senseNearbyMapInfos();
 
         MapInfo ruin = null;
@@ -92,11 +97,8 @@ public class RobotPlayer {
         if (ruin != null) {
 
             MapLocation ruinLoc = ruin.getMapLocation();
-            Direction dir = rc.getLocation().directionTo(ruinLoc);
 
-            if (rc.canMove(dir)) {
-                rc.move(dir);
-            }
+            move(rc, ruinLoc, false);
 
             UnitType towerType;
 
@@ -131,7 +133,7 @@ public class RobotPlayer {
         }
 
         Direction dir = directions[rng.nextInt(directions.length)];
-        if (rc.canMove(dir)) rc.move(dir);
+        move(rc, rc.getLocation().add(dir), false);
     }
 
     public static void runMopper(RobotController rc) throws GameActionException {
@@ -156,16 +158,13 @@ public class RobotPlayer {
                     return;
                 }
 
-                if (rc.canMove(dir)) {
-                    rc.move(dir);
-                    return;
-                }
+                move(rc, tile.getMapLocation(), false);
+                return;
             }
         }
 
         Direction dir = directions[rng.nextInt(directions.length)];
-
-        if (rc.canMove(dir)) rc.move(dir);
+        move(rc, rc.getLocation().add(dir), false);
     }
 
     public static void runSplasher(RobotController rc) throws GameActionException {
@@ -200,17 +199,12 @@ public class RobotPlayer {
                 return;
             }
 
-            Direction dir = rc.getLocation().directionTo(best);
-
-            if (rc.canMove(dir)) {
-                rc.move(dir);
-                return;
-            }
+            move(rc, best, false);
+            return;
         }
 
         Direction dir = directions[rng.nextInt(directions.length)];
-
-        if (rc.canMove(dir)) rc.move(dir);
+        move(rc, rc.getLocation().add(dir), false);
     }
 
     static void updateNearestPaintTower(RobotController rc) throws GameActionException {
@@ -246,11 +240,7 @@ public class RobotPlayer {
 
         if (knownPaintTower != null) {
 
-            Direction dir = rc.getLocation().directionTo(knownPaintTower);
-
-            if (rc.canMove(dir)) {
-                rc.move(dir);
-            }
+            move(rc, knownPaintTower, true);
 
             if (rc.canTransferPaint(knownPaintTower, -100)) {
                 rc.transferPaint(knownPaintTower, -100);
@@ -259,18 +249,71 @@ public class RobotPlayer {
             return true;
         }
 
-        RobotInfo[] allies = rc.senseNearbyRobots(-1, rc.getTeam());
+        return false;
+    }
 
-        for (RobotInfo r : allies) {
+    static void move(RobotController rc, MapLocation target, boolean refuelMode) throws GameActionException {
 
-            Direction dir = rc.getLocation().directionTo(r.location);
+        if (!rc.isMovementReady()) return;
 
-            if (rc.canMove(dir)) {
-                rc.move(dir);
-                return true;
+        Direction dir = rc.getLocation().directionTo(target);
+
+        if (rc.canMove(dir)) {
+            rc.move(dir);
+            return;
+        }
+
+        Direction left = dir.rotateLeft();
+        Direction right = dir.rotateRight();
+
+        int leftDist = 0;
+        int rightDist = 0;
+
+        Direction test = left;
+
+        for (int i = 0; i < 3; i++) {
+            if (rc.canMove(test)) {
+                leftDist++;
+                test = test.rotateLeft();
             }
         }
 
-        return false;
+        test = right;
+
+        for (int i = 0; i < 3; i++) {
+            if (rc.canMove(test)) {
+                rightDist++;
+                test = test.rotateRight();
+            }
+        }
+
+        if (leftDist > rightDist && rc.canMove(left)) {
+            rc.move(left);
+            return;
+        }
+
+        if (rightDist > leftDist && rc.canMove(right)) {
+            rc.move(right);
+            return;
+        }
+
+        if (refuelMode) {
+
+            RobotInfo[] allies = rc.senseNearbyRobots(-1, rc.getTeam());
+
+            if (allies.length > 0) {
+                Direction d = rc.getLocation().directionTo(allies[0].location);
+                if (rc.canMove(d)) rc.move(d);
+            }
+
+        } else {
+
+            RobotInfo[] enemies = rc.senseNearbyRobots(-1, rc.getTeam().opponent());
+
+            if (enemies.length > 0) {
+                Direction d = rc.getLocation().directionTo(enemies[0].location);
+                if (rc.canMove(d)) rc.move(d);
+            }
+        }
     }
 }

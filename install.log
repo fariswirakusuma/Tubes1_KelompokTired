@@ -1,0 +1,8 @@
+[16:41:37 2026-03-06] FETCHING Version 2.42.13
+[16:41:37 2026-03-06] DOWNLOADING https://github.com/spicetify/cli/releases/download/v2.42.13/spicetify-2.42.13-linux-amd64.tar.gz
+[16:41:43 2026-03-06] EXTRACTING /home/faris-wirakusuma/.spicetify/spicetify.tar.gz
+[16:41:43 2026-03-06] SETTING EXECUTABLE PERMISSIONS TO /home/faris-wirakusuma/.spicetify/spicetify
+[16:41:43 2026-03-06] REMOVING /home/faris-wirakusuma/.spicetify/spicetify.tar.gz
+[16:41:43 2026-03-06] spicetify path already set in /home/faris-wirakusuma/.bashrc, continuing...
+[16:41:43 2026-03-06] spicetify v2.42.13 was installed successfully to /home/faris-wirakusuma/.spicetify
+[16:41:43 2026-03-06] Run 'spicetify --help' to get started

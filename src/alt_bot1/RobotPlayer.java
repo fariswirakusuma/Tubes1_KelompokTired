@@ -1,21 +1,14 @@
 package alt_bot1;
-import java.util.Random;
 
-import battlecode.common.Clock;
-import battlecode.common.Direction;
-import battlecode.common.GameActionException;
-import battlecode.common.MapInfo;
-import battlecode.common.MapLocation;
-import battlecode.common.PaintType;
-import battlecode.common.RobotController;
-import battlecode.common.RobotInfo;
-import battlecode.common.UnitType;
+import java.util.Random;
+import battlecode.common.*;
 
 public class RobotPlayer {
 
     static int turnCount = 0;
     static Random rng;
     static int towersBuilt = 0;
+    static MapLocation knownPaintTower = null;
 
     static final Direction[] directions = {
             Direction.NORTH, Direction.NORTHEAST, Direction.EAST,
@@ -41,6 +34,7 @@ public class RobotPlayer {
             turnCount++;
 
             try {
+                updateNearestPaintTower(rc);
 
                 switch (rc.getType()) {
                     case SOLDIER: runSoldier(rc); break;
@@ -81,6 +75,8 @@ public class RobotPlayer {
     }
 
     public static void runSoldier(RobotController rc) throws GameActionException {
+
+        if (refuelPaint(rc)) return;
 
         MapInfo[] nearby = rc.senseNearbyMapInfos();
 
@@ -134,50 +130,13 @@ public class RobotPlayer {
             return;
         }
 
-        if (rc.getPaint() < rc.getType().paintCapacity * 0.3) {
-
-            RobotInfo[] allies = rc.senseNearbyRobots(-1, rc.getTeam());
-
-            for (RobotInfo r : allies) {
-
-                if (isTowerType(r.getType())) {
-
-                    Direction dir = rc.getLocation().directionTo(r.getLocation());
-
-                    if (rc.canMove(dir)) {
-                        rc.move(dir);
-                        return;
-                    }
-                }
-            }
-        }
-
-
-        RobotInfo[] allies = rc.senseNearbyRobots(-1, rc.getTeam());
-
-        for (RobotInfo r : allies) {
-
-            if (isTowerType(r.getType())) {
-
-                if (rc.canUpgradeTower(r.getLocation())) {
-                    rc.upgradeTower(r.getLocation());
-                    return;
-                }
-
-                Direction dir = rc.getLocation().directionTo(r.getLocation());
-
-                if (rc.canMove(dir)) {
-                    rc.move(dir);
-                    return;
-                }
-            }
-        }
-
         Direction dir = directions[rng.nextInt(directions.length)];
         if (rc.canMove(dir)) rc.move(dir);
     }
 
     public static void runMopper(RobotController rc) throws GameActionException {
+
+        if (refuelPaint(rc)) return;
 
         MapInfo[] tiles = rc.senseNearbyMapInfos();
 
@@ -210,6 +169,8 @@ public class RobotPlayer {
     }
 
     public static void runSplasher(RobotController rc) throws GameActionException {
+
+        if (refuelPaint(rc)) return;
 
         MapInfo[] tiles = rc.senseNearbyMapInfos();
 
@@ -250,5 +211,66 @@ public class RobotPlayer {
         Direction dir = directions[rng.nextInt(directions.length)];
 
         if (rc.canMove(dir)) rc.move(dir);
+    }
+
+    static void updateNearestPaintTower(RobotController rc) throws GameActionException {
+
+        RobotInfo[] allies = rc.senseNearbyRobots(-1, rc.getTeam());
+
+        for (RobotInfo r : allies) {
+
+            if (r.type == UnitType.LEVEL_ONE_PAINT_TOWER
+                    || r.type == UnitType.LEVEL_TWO_PAINT_TOWER
+                    || r.type == UnitType.LEVEL_THREE_PAINT_TOWER) {
+
+                if (knownPaintTower == null) {
+                    knownPaintTower = r.location;
+                } else {
+
+                    int oldDist = rc.getLocation().distanceSquaredTo(knownPaintTower);
+                    int newDist = rc.getLocation().distanceSquaredTo(r.location);
+
+                    if (newDist < oldDist) {
+                        knownPaintTower = r.location;
+                    }
+                }
+            }
+        }
+    }
+
+    static boolean refuelPaint(RobotController rc) throws GameActionException {
+
+        if (rc.getPaint() > rc.getType().paintCapacity * 0.25) {
+            return false;
+        }
+
+        if (knownPaintTower != null) {
+
+            Direction dir = rc.getLocation().directionTo(knownPaintTower);
+
+            if (rc.canMove(dir)) {
+                rc.move(dir);
+            }
+
+            if (rc.canTransferPaint(knownPaintTower, -100)) {
+                rc.transferPaint(knownPaintTower, -100);
+            }
+
+            return true;
+        }
+
+        RobotInfo[] allies = rc.senseNearbyRobots(-1, rc.getTeam());
+
+        for (RobotInfo r : allies) {
+
+            Direction dir = rc.getLocation().directionTo(r.location);
+
+            if (rc.canMove(dir)) {
+                rc.move(dir);
+                return true;
+            }
+        }
+
+        return false;
     }
 }

@@ -52,7 +52,6 @@ public class TowerDecision {
         return Direction.NORTHEAST;
     }
 
-
     public TowerDecision(RobotController rc) {
         this.rc = rc;
     }
@@ -125,10 +124,6 @@ public class TowerDecision {
             Spawn_Robot();
         }
     }
-
-
-
-
 
     private void Attack_Enemy() throws GameActionException {
         RobotInfo[] enemies = rc.senseNearbyRobots(rc.getType().actionRadiusSquared, rc.getTeam().opponent());

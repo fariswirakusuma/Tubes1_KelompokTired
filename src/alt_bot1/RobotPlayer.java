@@ -1,7 +1,6 @@
 package alt_bot1;
-
-import battlecode.common.*;
 import java.util.Random;
+import battlecode.common.*;
 
 public class RobotPlayer {
 
@@ -14,12 +13,18 @@ public class RobotPlayer {
             Direction.WEST, Direction.NORTHWEST,
     };
 
-    static int soldierProduced = 0;
-    static boolean ruinFoundGlobal = true;
+    static boolean isTowerType(UnitType type) {
+        return type == UnitType.LEVEL_ONE_PAINT_TOWER
+                || type == UnitType.LEVEL_TWO_PAINT_TOWER
+                || type == UnitType.LEVEL_THREE_PAINT_TOWER
+                || type == UnitType.LEVEL_ONE_MONEY_TOWER
+                || type == UnitType.LEVEL_TWO_MONEY_TOWER
+                || type == UnitType.LEVEL_THREE_MONEY_TOWER;
+    }
 
     public static void run(RobotController rc) throws GameActionException {
 
-        rng = new Random(rc.getID());
+        if (rng == null) rng = new Random(rc.getID());
 
         while (true) {
 
@@ -44,41 +49,24 @@ public class RobotPlayer {
 
     public static void runTower(RobotController rc) throws GameActionException {
 
-        Direction dir = directions[rng.nextInt(directions.length)];
-        MapLocation spawn = rc.getLocation().add(dir);
-
         if (!rc.isActionReady()) return;
 
-        if (turnCount < 200) {
+        UnitType spawnType;
 
-            if (rc.canBuildRobot(UnitType.SOLDIER, spawn)) {
-                rc.buildRobot(UnitType.SOLDIER, spawn);
-                soldierProduced++;
+        if (turnCount < 200) {
+            spawnType = UnitType.SOLDIER;
+        } else {
+            spawnType = rng.nextBoolean() ? UnitType.MOPPER : UnitType.SPLASHER;
+        }
+
+        for (Direction dir : directions) {
+
+            MapLocation spawn = rc.getLocation().add(dir);
+
+            if (rc.canBuildRobot(spawnType, spawn)) {
+                rc.buildRobot(spawnType, spawn);
                 return;
             }
-        }
-
-        if (ruinFoundGlobal == false) {
-
-            if (rng.nextBoolean()) {
-
-                if (rc.canBuildRobot(UnitType.MOPPER, spawn)) {
-                    rc.buildRobot(UnitType.MOPPER, spawn);
-                    return;
-                }
-
-            } else {
-
-                if (rc.canBuildRobot(UnitType.SPLASHER, spawn)) {
-                    rc.buildRobot(UnitType.SPLASHER, spawn);
-                    return;
-                }
-            }
-        }
-
-
-        if (rc.canBuildRobot(UnitType.SPLASHER, spawn)) {
-            rc.buildRobot(UnitType.SPLASHER, spawn);
         }
     }
 
@@ -91,7 +79,6 @@ public class RobotPlayer {
         for (MapInfo tile : nearby) {
             if (tile.hasRuin()) {
                 ruin = tile;
-                ruinFoundGlobal = true;
                 break;
             }
         }
@@ -101,7 +88,9 @@ public class RobotPlayer {
             MapLocation ruinLoc = ruin.getMapLocation();
             Direction dir = rc.getLocation().directionTo(ruinLoc);
 
-            if (rc.canMove(dir)) rc.move(dir);
+            if (rc.canMove(dir)) {
+                rc.move(dir);
+            }
 
             if (rc.canMarkTowerPattern(UnitType.LEVEL_ONE_PAINT_TOWER, ruinLoc)) {
                 rc.markTowerPattern(UnitType.LEVEL_ONE_PAINT_TOWER, ruinLoc);
@@ -126,13 +115,30 @@ public class RobotPlayer {
             return;
         }
 
-        ruinFoundGlobal = false;
+        if (rc.getPaint() < rc.getType().paintCapacity * 0.3) {
+
+            RobotInfo[] allies = rc.senseNearbyRobots(-1, rc.getTeam());
+
+            for (RobotInfo r : allies) {
+
+                if (isTowerType(r.getType())) {
+
+                    Direction dir = rc.getLocation().directionTo(r.getLocation());
+
+                    if (rc.canMove(dir)) {
+                        rc.move(dir);
+                        return;
+                    }
+                }
+            }
+        }
+
 
         RobotInfo[] allies = rc.senseNearbyRobots(-1, rc.getTeam());
 
         for (RobotInfo r : allies) {
 
-            if (r.getType().isTower()) {
+            if (isTowerType(r.getType())) {
 
                 if (rc.canUpgradeTower(r.getLocation())) {
                     rc.upgradeTower(r.getLocation());
@@ -140,18 +146,9 @@ public class RobotPlayer {
                 }
 
                 Direction dir = rc.getLocation().directionTo(r.getLocation());
-                if (rc.canMove(dir)) rc.move(dir);
-                return;
-            }
-        }
 
-        if (rc.getPaint() < rc.getType().paintCapacity * 0.3) {
-
-            for (RobotInfo r : allies) {
-                if (r.getType().isTower()) {
-
-                    Direction dir = rc.getLocation().directionTo(r.getLocation());
-                    if (rc.canMove(dir)) rc.move(dir);
+                if (rc.canMove(dir)) {
+                    rc.move(dir);
                     return;
                 }
             }
@@ -169,15 +166,22 @@ public class RobotPlayer {
 
             if (tile.getPaint().isEnemy()) {
 
+                Direction dir = rc.getLocation().directionTo(tile.getMapLocation());
+
+                if (rc.canMopSwing(dir)) {
+                    rc.mopSwing(dir);
+                    return;
+                }
+
                 if (rc.canAttack(tile.getMapLocation())) {
                     rc.attack(tile.getMapLocation());
                     return;
                 }
 
-                Direction dir = rc.getLocation().directionTo(tile.getMapLocation());
-                if (rc.canMove(dir)) rc.move(dir);
-
-                return;
+                if (rc.canMove(dir)) {
+                    rc.move(dir);
+                    return;
+                }
             }
         }
 
@@ -217,8 +221,15 @@ public class RobotPlayer {
             }
 
             Direction dir = rc.getLocation().directionTo(best);
-            if (rc.canMove(dir)) rc.move(dir);
-        }
-    }
 
+            if (rc.canMove(dir)) {
+                rc.move(dir);
+                return;
+            }
+        }
+
+        Direction dir = directions[rng.nextInt(directions.length)];
+
+        if (rc.canMove(dir)) rc.move(dir);
+    }
 }

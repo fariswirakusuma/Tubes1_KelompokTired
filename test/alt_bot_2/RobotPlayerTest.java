@@ -1,13 +1,14 @@
-package faris_bot;
+package alt_bot_2;
 
-import static org.junit.Assert.assertEquals;
-
+import static org.junit.Assert.*;
 import org.junit.Test;
 
 public class RobotPlayerTest {
-    	@Test
+
+	@Test
 	public void testSanity() {
 		assertEquals(2, 1+1);
 	}
 
 }
+

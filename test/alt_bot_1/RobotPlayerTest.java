@@ -1,4 +1,4 @@
-package jojo_bot1;
+package alt_bot_1;
 
 import static org.junit.Assert.*;
 import org.junit.Test;

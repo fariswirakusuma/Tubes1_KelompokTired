@@ -1,14 +1,13 @@
-package rama_bot;
+package main_bot;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+
 import org.junit.Test;
 
 public class RobotPlayerTest {
-
-	@Test
+    	@Test
 	public void testSanity() {
 		assertEquals(2, 1+1);
 	}
 
 }
-

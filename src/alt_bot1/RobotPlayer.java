@@ -1,11 +1,21 @@
 package alt_bot1;
 import java.util.Random;
-import battlecode.common.*;
+
+import battlecode.common.Clock;
+import battlecode.common.Direction;
+import battlecode.common.GameActionException;
+import battlecode.common.MapInfo;
+import battlecode.common.MapLocation;
+import battlecode.common.PaintType;
+import battlecode.common.RobotController;
+import battlecode.common.RobotInfo;
+import battlecode.common.UnitType;
 
 public class RobotPlayer {
 
     static int turnCount = 0;
     static Random rng;
+    static int towersBuilt = 0;
 
     static final Direction[] directions = {
             Direction.NORTH, Direction.NORTHEAST, Direction.EAST,
@@ -92,8 +102,16 @@ public class RobotPlayer {
                 rc.move(dir);
             }
 
-            if (rc.canMarkTowerPattern(UnitType.LEVEL_ONE_PAINT_TOWER, ruinLoc)) {
-                rc.markTowerPattern(UnitType.LEVEL_ONE_PAINT_TOWER, ruinLoc);
+            UnitType towerType;
+
+            if (towersBuilt % 2 == 0) {
+                towerType = UnitType.LEVEL_ONE_PAINT_TOWER;
+            } else {
+                towerType = UnitType.LEVEL_ONE_MONEY_TOWER;
+            }
+
+            if (rc.canMarkTowerPattern(towerType, ruinLoc)) {
+                rc.markTowerPattern(towerType, ruinLoc);
             }
 
             for (MapInfo tile : rc.senseNearbyMapInfos(ruinLoc, 8)) {
@@ -108,8 +126,9 @@ public class RobotPlayer {
                 }
             }
 
-            if (rc.canCompleteTowerPattern(UnitType.LEVEL_ONE_PAINT_TOWER, ruinLoc)) {
-                rc.completeTowerPattern(UnitType.LEVEL_ONE_PAINT_TOWER, ruinLoc);
+            if (rc.canCompleteTowerPattern(towerType, ruinLoc)) {
+                rc.completeTowerPattern(towerType, ruinLoc);
+                towersBuilt++;
             }
 
             return;

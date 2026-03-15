@@ -90,18 +90,21 @@ public class RobotPlayer {
         MapInfo[] nearby = rc.senseNearbyMapInfos();
 
         MapInfo ruin = null;
+        int bestDist = 999999;
 
         for (MapInfo tile : nearby) {
             if (tile.hasRuin()) {
-                ruin = tile;
-                break;
+                int dist = rc.getLocation().distanceSquaredTo(tile.getMapLocation());
+                if (dist < bestDist) {
+                    bestDist = dist;
+                    ruin = tile;
+                }
             }
         }
 
         if (ruin != null) {
 
             MapLocation ruinLoc = ruin.getMapLocation();
-
             move(rc, ruinLoc, false);
 
             UnitType towerType;
@@ -123,8 +126,9 @@ public class RobotPlayer {
 
                     boolean sec = tile.getMark() == PaintType.ALLY_SECONDARY;
 
-                    if (rc.canAttack(tile.getMapLocation()))
+                    if (rc.canAttack(tile.getMapLocation())) {
                         rc.attack(tile.getMapLocation(), sec);
+                    }
                 }
             }
 
@@ -136,20 +140,30 @@ public class RobotPlayer {
             return;
         }
 
+        RobotInfo[] allies = rc.senseNearbyRobots(-1, rc.getTeam());
+
+        for (RobotInfo r : allies) {
+            if (isTowerType(r.type)) {
+                MapLocation loc = r.location;
+                if (rc.canUpgradeTower(loc)) {
+                    rc.upgradeTower(loc);
+                    return;
+                }
+                move(rc, loc, false);
+                return;
+            }
+        }
+
         Direction dir = directions[rng.nextInt(directions.length)];
         move(rc, rc.getLocation().add(dir), false);
     }
 
     public static void runMopper(RobotController rc) throws GameActionException {
-
         if (refuelPaint(rc)) return;
 
         MapInfo[] tiles = rc.senseNearbyMapInfos();
-
         for (MapInfo tile : tiles) {
-
             if (tile.getPaint().isEnemy()) {
-
                 Direction dir = rc.getLocation().directionTo(tile.getMapLocation());
 
                 if (rc.canMopSwing(dir)) {

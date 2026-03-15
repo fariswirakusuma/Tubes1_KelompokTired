@@ -9,6 +9,10 @@ public class RobotPlayer {
     static Random rng;
     static int towersBuilt = 0;
     static MapLocation knownPaintTower = null;
+    static boolean obstacleBlock = false;
+    static boolean followRight = true;
+    static MapLocation obstacleTarget = null;
+    static Direction obstacleDir = Direction.CENTER;
 
     static final Direction[] directions = {
             Direction.NORTH, Direction.NORTHEAST, Direction.EAST,
@@ -253,67 +257,55 @@ public class RobotPlayer {
     }
 
     static void move(RobotController rc, MapLocation target, boolean refuelMode) throws GameActionException {
-
         if (!rc.isMovementReady()) return;
+        MapLocation here = rc.getLocation();
+        Direction dirToTarget = here.directionTo(target);
 
-        Direction dir = rc.getLocation().directionTo(target);
-
-        if (rc.canMove(dir)) {
-            rc.move(dir);
-            return;
+        if (obstacleTarget == null || !obstacleTarget.equals(target)) {
+            obstacleBlock = false;
+            obstacleTarget = target;
         }
 
-        Direction left = dir.rotateLeft();
-        Direction right = dir.rotateRight();
+        if (!obstacleBlock) {
+            if (rc.canMove(dirToTarget)) {
+                rc.move(dirToTarget);
+                return;
+            }
+            obstacleBlock = true;
 
-        int leftDist = 0;
-        int rightDist = 0;
+            Direction left = dirToTarget.rotateLeft();
+            Direction right = dirToTarget.rotateRight();
+            int leftScore = scoreDirection(rc, left, target);
+            int rightScore = scoreDirection(rc, right, target);
 
-        Direction test = left;
+            followRight = rightScore < leftScore;
+            obstacleDir = followRight ? right : left;
+        }
 
-        for (int i = 0; i < 3; i++) {
-            if (rc.canMove(test)) {
-                leftDist++;
-                test = test.rotateLeft();
+        for (int i = 0; i < 8; i++) {
+            if (rc.canMove(obstacleDir)) {
+                rc.move(obstacleDir);
+                break;
+            }
+            obstacleDir = followRight ? obstacleDir.rotateRight() : obstacleDir.rotateLeft();
+        }
+
+        Direction checkDir = here.directionTo(target);
+
+        if (rc.canMove(checkDir)) {
+            Direction sideCheck = followRight ? checkDir.rotateLeft() : checkDir.rotateRight();
+            MapLocation sideLoc = here.add(sideCheck);
+            MapInfo info = rc.senseMapInfo(sideLoc);
+            if (info.isPassable()) {
+                obstacleBlock = false;
+                obstacleDir = Direction.CENTER;
             }
         }
+    }
 
-        test = right;
-
-        for (int i = 0; i < 3; i++) {
-            if (rc.canMove(test)) {
-                rightDist++;
-                test = test.rotateRight();
-            }
-        }
-
-        if (leftDist > rightDist && rc.canMove(left)) {
-            rc.move(left);
-            return;
-        }
-
-        if (rightDist > leftDist && rc.canMove(right)) {
-            rc.move(right);
-            return;
-        }
-
-        if (refuelMode) {
-
-            RobotInfo[] allies = rc.senseNearbyRobots(-1, rc.getTeam());
-
-            if (allies.length > 0) {
-                Direction d = rc.getLocation().directionTo(allies[0].location);
-                if (rc.canMove(d)) rc.move(d);
-            }
-
-        } else {
-
-            RobotInfo[] enemies = rc.senseNearbyRobots(-1, rc.getTeam().opponent());
-
-            if (enemies.length > 0) {
-                Direction d = rc.getLocation().directionTo(enemies[0].location);
-                if (rc.canMove(d)) rc.move(d);
-            }
-        }
+    static int scoreDirection(RobotController rc, Direction d, MapLocation target) throws GameActionException {
+        MapLocation test = rc.getLocation().add(d);
+        if (!rc.canMove(d)) return 9999;
+        return test.distanceSquaredTo(target);
     }
 }

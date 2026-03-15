@@ -1,4 +1,4 @@
-package jojo_bot;
+package alt_bot_1;
 
 import java.util.Random;
 import battlecode.common.*;

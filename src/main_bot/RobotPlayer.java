@@ -1,9 +1,9 @@
-package faris_bot;
+package main_bot;
 
 
 
 import battlecode.common.*;
-import faris_bot.*;
+import main_bot.*;
 
 import java.util.Arrays;
 import java.util.HashMap;

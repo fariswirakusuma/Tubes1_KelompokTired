@@ -1,4 +1,4 @@
-package faris_bot;
+package main_bot;
 import battlecode.common.*;
 import java.util.Arrays;
 
@@ -14,12 +14,11 @@ public class RobotDecision {
     private int weightAllySupport;
     private int weightEnemyThreat;
     private MapLocation lastTargetedTower = null;
-    private int towersDestroyedCount = 0;
+
     private int weightStealPaint;
     private MapLocation explorationTarget = null;
     private int weightTransferPaint;
-    private int weightMarking;
-    private int weightComm;
+
     private String actionType;
 
     private int PAINT_PRIORITY; 
@@ -119,7 +118,11 @@ public class RobotDecision {
                 rc.completeTowerPattern(UnitType.LEVEL_ONE_PAINT_TOWER, ruinLoc);
                 return; 
             }
-            if (rc.canMarkTowerPattern(UnitType.LEVEL_ONE_PAINT_TOWER, ruinLoc)) {
+            if (rc.canMarkTowerPattern(UnitType.LEVEL_ONE_DEFENSE_TOWER, ruinLoc)) {
+                rc.markTowerPattern(UnitType.LEVEL_ONE_PAINT_TOWER, ruinLoc);
+                return;
+            }
+            if (rc.canMarkTowerPattern(UnitType.LEVEL_ONE_MONEY_TOWER, ruinLoc)) {
                 rc.markTowerPattern(UnitType.LEVEL_ONE_PAINT_TOWER, ruinLoc);
                 return;
             }
@@ -135,9 +138,11 @@ public class RobotDecision {
             if (!rc.canAttack(enemy.location)) continue;
             int score = 0;
             if (enemy.getType().isTowerType()) {
-                score = ActionPower(null, 0, 0, 0, 0, 1, 0, 0, 0); 
+                score = ActionPower(null, 0, 0,
+                     0, 0, 1, 0, 0, 0); 
             } else if (type == UnitType.MOPPER) {
-                score = ActionPower(null, 0, 0, 0, 1, 0, 0, 0, 0);
+                score = ActionPower(null, 0, 0, 0,
+                     1, 0, 0, 0, 0);
             } else if (rc.getPaint() > 0) {
                 score = ActionPower(null, 0, 0, 0, 0, 0, 0, 0, 0);
             }
@@ -203,11 +208,11 @@ public class RobotDecision {
 
     public int PositionPower(int tower_opp, int dist_imp, int ally_paint) {
         double score = 0;
-        int multiplier = (rc.getPaint() <= 0) ? 500 : 300; 
+        int multiplier = (rc.getPaint() <= 0) ? 1000 : 500; 
         
         if (tower_opp > 0 && rc.getPaint() > 0) {
             score += (tower_opp * this.weightTowerAttack * 10);
-            multiplier = 1000; 
+            multiplier = 5000; 
         }
 
         score += dist_imp * this.weightDistImprove * multiplier;
@@ -264,7 +269,9 @@ public class RobotDecision {
             }
 
             int dist_imp = myLoc.distanceSquaredTo(explorationTarget) - next.distanceSquaredTo(explorationTarget);
-            int tower_opp = (enemyTower != null) ? 1 : 0;
+            int tower_opp = 0;
+            if (enemyTower!=null)tower_opp =1;
+            else tower_opp=0;
 
             int score = PositionPower(tower_opp, dist_imp, allyPaintCount) - tileAlreadyFriendlyPenalty;
             if (dir == Direction.CENTER) score = -2000000;
@@ -282,7 +289,7 @@ public class RobotDecision {
         if (rc.isActionReady()) {
             doAction();
         }
-        if (rc.isMovementReady()) {
+        if(rc.isMovementReady()) {
             Direction bestDir = chooseMove();
             if (bestDir != Direction.CENTER) rc.move(bestDir);
         }

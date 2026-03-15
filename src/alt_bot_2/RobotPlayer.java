@@ -1,4 +1,4 @@
-package rama_bot;
+package alt_bot_2;
 
 import battlecode.common.*;
 import java.util.Random;

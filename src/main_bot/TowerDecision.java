@@ -1,4 +1,4 @@
-package faris_bot;
+package main_bot;
 
 import battlecode.common.Direction;
 import battlecode.common.GameActionException;
@@ -8,9 +8,9 @@ import battlecode.common.RobotInfo;
 import battlecode.common.UnitType;
 
 public class TowerDecision {
-    private final int greatResourceForUpgrade = 4000;
-    private final int IdealSpawnSplasher = 400;
-    private final int IdealSpawnSoldierCount = 2;
+    private final int greatResourceForUpgrade = UnitType.LEVEL_TWO_MONEY_TOWER.moneyCost;
+    // private final int IdealSpawnSplasher = 400;
+    // private final int IdealSpawnSoldierCount = 2;
     private RobotController rc;
     public static final Direction[] directions = {
         Direction.NORTH,
@@ -64,11 +64,9 @@ public class TowerDecision {
         int paint = rc.getPaint();
         int round = rc.getRoundNum();
 
-        // 1. Dynamic Thresholds
         int idealSoldiers = (round < 500) ? 3 : (round < 1500 ? 6 : 2);
-        int splasherPaintReq = (round > 1500) ? 100 : 400;
+        int splasherPaintReq = (round > 600) ? 100 : 400;
 
-        // Count current squad
         int soldiers = 0;
         int moppers = 0;
         int splashers = 0;
@@ -80,41 +78,32 @@ public class TowerDecision {
 
         UnitType toBuild = null;
 
-        // --- PRIORITY LADDER ---
-        
         if (enemies.length > 0) {
             if (enemies[0].type == UnitType.MOPPER) {
-                toBuild = UnitType.SOLDIER; // Soldier beats Mopper
+                toBuild = UnitType.SOLDIER;
             } else {
-                toBuild = UnitType.MOPPER;  // Mopper drains everything else
+                toBuild = UnitType.MOPPER;  
             };
         }
-        // Priority B: THE PROTECTOR (Your first strat)
-        // If we have any attackers (Soldiers/Splashers) but NO mopper, spawn the Mopper NOW.
+        
         else if ((soldiers > 0 || splashers > 0) && moppers == 0 && chips >= UnitType.MOPPER.moneyCost) {
             toBuild = UnitType.MOPPER;
         }
-        // Priority C: RICH MAN'S SPLASHER
         else if (chips > 1500 && paint > splasherPaintReq) {
             toBuild = UnitType.SPLASHER;
         }
-        // Priority D: CORE INFANTRY
         else if (soldiers < idealSoldiers && chips >= UnitType.SOLDIER.moneyCost) {
             toBuild = UnitType.SOLDIER;
         }
-        // Priority E: SECONDARY MOPPER (Maintain the Buddy Ratio)
-        // If you have a growing army, ensure 1 mopper for every 2 attackers.
+       
         else if (moppers < ((soldiers + splashers) / 2) && chips >= UnitType.MOPPER.moneyCost) {
             toBuild = UnitType.MOPPER;
         }
-        // Priority F: STANDARD SPLASHER
         else if (chips >= UnitType.SPLASHER.moneyCost && paint > splasherPaintReq) {
             toBuild = UnitType.SPLASHER;
         }
 
         if (toBuild == null) return;
-
-        // Direction Logic
         Direction dir = (enemies.length > 0) ? towerLoc.directionTo(enemies[0].location) : autoDirection(enemies);
         
         for (int i = 0; i < 8; i++) {
